@@ -1,0 +1,56 @@
+:root {
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --primary-bg: #eff6ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-light: #94a3b8;
+  --bg: #f8fafc;
+  --bg-card: #ffffff;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: all 0.2s ease;
+  --font: 'Inter', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Element Plus overrides for kiosk touch screens */
+.el-button--large { border-radius: var(--radius-sm); height: 48px; font-size: 16px; }
+.el-button--primary { --el-button-bg-color: var(--primary); --el-button-border-color: var(--primary); --el-button-hover-bg-color: var(--primary-light); --el-button-hover-border-color: var(--primary-light); }
+.el-card { border-radius: var(--radius); border: none; box-shadow: var(--shadow); }
+.el-table { border-radius: var(--radius-sm); }
+.el-table th.el-table__cell { background-color: var(--primary-bg) !important; color: var(--primary); font-weight: 600; }
+.el-input__wrapper { border-radius: var(--radius-sm); box-shadow: 0 0 0 1px var(--border) inset; }
+.el-input__wrapper:hover { box-shadow: 0 0 0 1px var(--primary-light) inset; }
+.el-input__wrapper.is-focus { box-shadow: 0 0 0 2px var(--primary) inset; }
+.el-dialog { border-radius: var(--radius); }
+.el-message { min-width: 300px; }
+.el-tag { border-radius: 6px; }

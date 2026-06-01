@@ -1,0 +1,27 @@
+# Maven
+target/
+*.jar
+*.war
+*.class
+*.log
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
