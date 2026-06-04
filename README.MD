@@ -10,7 +10,7 @@
 
 | 模块 | 功能 |
 |------|------|
-| **身份认证** | 身份证 / 医保卡 / 手机号三种验证方式 |
+| **身份认证** | 身份证 / 医保卡 / 手机号 / **就诊卡号** 四种验证方式 |
 | **当日挂号** | 选科室 → 选医生 → 选号源 → 确认 → 支付（模拟微信/支付宝/银行卡/医保） |
 | **预约挂号** | 同上，支持提前预约 |
 | **门诊缴费** | 查看待缴费项目并在线支付 |
@@ -19,8 +19,8 @@
 | **缴费查询** | 查询门诊缴费明细 |
 | **住院查询** | 查询住院费用及充值记录 |
 | **药品价格** | 查询医院药品价格 |
-| **排队叫号** | 查看当前排队进度 |
-| **排队签到** | 到院后自助签到进入排队队列 |
+| **排队叫号** | 实时查看当前排队进度（WebSocket 推送） |
+| **排队签到** | 到院后自助签到进入排队队列，支持复诊检测与过号重新入队 |
 
 ### 管理后台 (Admin-Frontend)
 
@@ -31,6 +31,7 @@
 | **对账管理** | 按渠道（微信/支付宝/银行卡/医保/HIS）执行对账、查看差异明细、生成差异工单 |
 | **退款管理** | 退款申请审批（通过/驳回） |
 | **日终结算** | 生成结算单、确认、锁定 |
+| **叫号管理** | 按科室+医生查看队列、呼叫下一个、复叫、过号、开始就诊，WebSocket 实时刷新 |
 | **设备管理** | 查看自助机状态、心跳、修改功能配置 |
 | **规则配置** | 动态配置业务规则 |
 | **黑名单管理** | 添加/移除黑名单患者 |
@@ -63,26 +64,27 @@
 | 模块 | 职责 |
 |------|------|
 | `hospital-common` | 统一响应体(R)、全局异常处理、Jackson 配置、工具类 |
-| `hospital-model` | 实体类(23个)、DTO、枚举 |
+| `hospital-model` | 实体类(23+)、DTO、枚举、VO |
 | `hospital-dal` | MyBatis-Plus Mapper + 分页配置 + 自动填充 |
 | `hospital-his-adapter` | HIS 系统接口抽象 + HisMockClient 模拟实现 |
 | `hospital-payment` | 支付策略模式(微信/支付宝/银行卡/医保) + 回调分发 |
 | `hospital-hardware` | 硬件抽象层(读卡器/打印机/扫码枪) + Mock实现 |
 | `hospital-service` | 业务逻辑：挂号/门诊/住院/支付/退款/对账/结算/排队/签到/规则/黑名单/异常检测 |
 | `hospital-job` | 定时任务：每日对账(2AM)、超时关单(1min)、设备离线检测(1min)、异常检测(5min) |
-| `hospital-web` | Controller(自助机/管理后台/回调)、CORS 配置、启动入口 |
+| `hospital-web` | Controller(自助机/管理后台/回调)、CORS 配置、WebSocket、Redis Pub/Sub、启动入口 |
 
 ### 自助机前端 (kiosk-frontend)
 
 | 技术 | 用途 |
 |------|------|
 | Vue 3 (Composition API) | 框架 |
-| Vite 6 | 构建工具 |
+| Vite | 构建工具 |
 | TypeScript | 类型安全 |
 | Element Plus | UI 组件库 |
 | Pinia | 状态管理 |
 | Vue Router | 路由 |
 | Axios | HTTP 请求 |
+| @stomp/stompjs + SockJS | WebSocket 实时队列推送 |
 
 ### 管理后台前端 (admin-frontend)
 
@@ -90,7 +92,7 @@
 
 ---
 
-## 数据库 (23张表)
+## 数据库 (23+ 张表)
 
 | 表名 | 说明 |
 |------|------|
@@ -100,7 +102,7 @@
 | `schedule` | 排班(号源) |
 | `schedule_lock` | 号源锁 |
 | `registration` | 挂号记录 |
-| `queue` | 排队记录 |
+| `queue` | 排队记录（含 callCount/type/revisitSourceId） |
 | `outpatient_order` | 门诊缴费单 |
 | `outpatient_order_item` | 门诊缴费明细 |
 | `inpatient_deposit` | 住院充值记录 |
@@ -120,7 +122,13 @@
 
 > 完整建表脚本：`hospital-backend/sql/schema.sql`
 >
-> 测试数据：`hospital-backend/sql/test-data.sql`（14个科室、20名医生、32个号源、5名患者、12种药品、5台自助机）
+> 初版测试数据：`hospital-backend/sql/test-data.sql`（14个科室、20名医生、5名患者、12种药品、5台自助机）
+>
+> Queue 扩展字段：`hospital-backend/sql/alter-queue.sql`（callCount/type/revisitSourceId）
+>
+> 排队测试数据：`hospital-backend/sql/test-queue.sql`（含已签到/已开始就诊的记录）
+>
+> 一周号源：`hospital-backend/sql/test-schedule-week.sql`（189个号源，覆盖今天到+6天）
 
 ---
 
@@ -131,7 +139,7 @@
 - JDK 17+
 - Maven 3.8+
 - MySQL 8.0
-- Redis 7.x
+- Redis 7.x（端口 6379，可配置密码 123456）
 - Node.js 18+
 - npm 或 pnpm
 
@@ -141,8 +149,10 @@
 # 1. 初始化数据库
 mysql -u root -p < hospital-backend/sql/schema.sql
 mysql -u root -p < hospital-backend/sql/test-data.sql
+mysql -u root -p < hospital-backend/sql/alter-queue.sql
+mysql -u root -p < hospital-backend/sql/test-queue.sql
 
-# 2. 启动后端（端口 8080）
+# 2. 启动后端（端口 8080，需先启动 Redis）
 cd hospital-backend
 mvn spring-boot:run -pl hospital-web
 
@@ -184,14 +194,15 @@ docker-compose up -d
 
 | 路径 | 方法 | 说明 |
 |------|------|------|
-| `/kiosk/patient/verify` | POST | 身份验证 |
+| `/kiosk/patient/verify` | POST | 身份验证（身份证/医保卡/手机号/就诊卡号） |
 | `/kiosk/registration/departments` | GET | 科室列表 |
 | `/kiosk/registration/doctors` | GET | 医生列表 |
 | `/kiosk/registration/schedules` | GET | 号源列表 |
 | `/kiosk/registration/register` | POST | 确认挂号 |
 | `/kiosk/payment/pay` | POST | 支付 |
-| `/kiosk/queue/detail` | GET | 排队信息 |
-| `/kiosk/signin/sign` | POST | 排队签到 |
+| `/kiosk/queue/detail` | GET | 排队信息（按科室+医生查询） |
+| `/kiosk/signin/sign` | POST | 排队签到（挂号号签到，自动加 Redis 队列） |
+| `/kiosk/signin/reenter` | POST | 过号重新入队 |
 
 ### 管理后台接口 (`/admin/`)
 
@@ -203,10 +214,22 @@ docker-compose up -d
 | `/admin/recon/execute` | POST | 执行对账 |
 | `/admin/refund/list` | GET | 退款列表 |
 | `/admin/settlement/generate` | POST | 生成结算 |
+| `/admin/queue/panel` | GET | 队列面板数据（当前叫号 + 等待列表） |
+| `/admin/queue/call-next` | POST | 呼叫下一个 |
+| `/admin/queue/recall/{id}` | POST | 复叫 |
+| `/admin/queue/skip/{id}` | POST | 过号 |
+| `/admin/queue/start/{id}` | POST | 开始就诊 |
 | `/admin/kiosk/list` | GET | 设备列表 |
 | `/admin/rule/list` | GET | 规则列表 |
 | `/admin/blacklist/list` | GET | 黑名单 |
 | `/admin/anomaly/detect` | GET | 异常检测 |
+
+### WebSocket 端点
+
+| 端点 | 说明 |
+|------|------|
+| `/ws-stomp` | STOMP over SockJS 端点 |
+| `/topic/queue/{deptId}/{docId}` | 订阅队列事件（由 Redis Pub/Sub 桥接） |
 
 ---
 
@@ -216,15 +239,16 @@ docker-compose up -d
 smartHospital/
 ├── hospital-backend/               # Spring Boot 后端
 │   ├── hospital-common/            # 统一响应、异常、工具类
-│   ├── hospital-model/             # 实体、DTO、枚举
+│   ├── hospital-model/             # 实体、DTO、枚举、VO
 │   ├── hospital-dal/               # MyBatis-Plus Mapper
 │   ├── hospital-his-adapter/       # HIS 适配层（接口 + Mock）
 │   ├── hospital-payment/           # 支付策略模块
 │   ├── hospital-hardware/          # 硬件抽象层（模拟）
-│   ├── hospital-service/           # 业务逻辑层
+│   ├── hospital-service/           # 业务逻辑 + Lua 脚本
+│   │   └── resources/lua/          # Redis Lua 脚本（enqueue/reenter_skip/zpopmin_batch）
 │   ├── hospital-job/               # 定时任务
-│   ├── hospital-web/               # Controller + 启动类
-│   └── sql/                        # 建表 + 测试数据
+│   ├── hospital-web/               # Controller + 配置（WebSocket/Redis PubSub）
+│   └── sql/                        # 建表 + 测试数据 + 迁移脚本
 │
 ├── kiosk-frontend/                 # 自助机前端 (Vue3)
 ├── admin-frontend/                 # 管理后台前端 (Vue3)
@@ -235,7 +259,30 @@ smartHospital/
 
 ## 架构设计要点
 
+### 排队叫号系统（核心亮点）
+
+**Redis ZSET + Lua 脚本实现原子排队，WebSocket 实时推送。**
+
+```
+签到流程：
+患者挂号 → 自助机签到(Lua ZADD) → Redis ZSET 排入
+                      ↓
+管理员叫号(Lua ZPOPMIN) → 医生接诊 → 开始就诊/完成
+                      ↓
+Redis Pub/Sub → RedisPubSubBridge → STOMP WebSocket → 前端实时更新
+```
+
+**三种患者类型与排队分数计算：**
+
+| 类型 | 分数规则 | 位置 |
+|------|---------|------|
+| 初诊 (FIRST_VISIT) | `signTs`（签到时间戳） | 按先后顺序 |
+| 复诊 (REVISIT) | `firstScore + 3×stepInterval` | 每3个初诊插入1个复诊 |
+| 急诊 (EMERGENCY) | `signTs - 86400000`（减1天） | 绝对优先 |
+| 过号重入 | `firstScore + 1×stepInterval` | 每1个初诊插入1个重入 |
+
 ### 支付策略模式
+
 ```java
 public interface PaymentStrategy {
     String getPayMethod();
@@ -244,9 +291,11 @@ public interface PaymentStrategy {
     RefundResult refund(outTradeNo, refundNo, amount);
 }
 ```
+
 四种支付方式（微信/支付宝/银行卡/医保）各自实现 `PaymentStrategy`，通过策略模式注入 `Map<String, PaymentStrategy>`，便于扩展。
 
 ### HIS 系统解耦
+
 ```java
 public interface HisClient {
     OutpatientOrderDTO getOutpatientOrder(visitNo);
@@ -255,18 +304,36 @@ public interface HisClient {
     // ...
 }
 ```
+
 通过接口定义 HIS 交互契约，`HisMockClient` 提供模拟实现，可无缝切换真实 HIS 对接。
 
 ### 硬件抽象
+
 ```java
 public interface CardReaderDriver { CardReadResult readCard(); }
 public interface PrinterDriver { void print(String content); }
 public interface ScannerDriver { String scan(); }
 ```
+
 读卡器、打印机、扫码枪均抽象为接口 + Mock 实现，无需真实硬件即可开发测试。
 
 ### Redis 分布式锁
+
 挂号时使用 Redis 锁防止号源超卖（5 分钟自动过期），配合 `schedule_lock` 表做持久化记录。
+
+### 实时推送架构
+
+```
+后端 Redis Lua 操作 → Redis Pub/Sub 发布事件
+         ↓
+RedisPubSubBridge（监听 queue:event:* 频道）
+         ↓
+SimpMessagingTemplate → STOMP WebSocket → 前端订阅
+```
+
+- 后端不直接操作 WebSocket，通过 Redis Pub/Sub 解耦
+- 前端使用 `@stomp/stompjs` + `SockJS` 订阅 `/topic/queue/{dept}/{doc}`
+- 异常时自动降级为 5 秒轮询
 
 ---
 
