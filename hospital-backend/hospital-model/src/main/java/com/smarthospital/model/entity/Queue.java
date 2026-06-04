@@ -16,6 +16,9 @@ public class Queue {
     private String status;
     private LocalDateTime callTime;
     private Integer waitCount;
+    private Integer callCount;
+    private String type;
+    private Long revisitSourceId;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 }

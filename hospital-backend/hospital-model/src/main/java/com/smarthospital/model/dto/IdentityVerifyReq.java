@@ -7,5 +7,6 @@ public class IdentityVerifyReq {
     private String idCard;
     private String medicareCard;
     private String phone;
+    private String medicalNo;
     private String verifyType;
 }

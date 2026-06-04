@@ -4,7 +4,7 @@ import com.smarthospital.his.dto.*;
 import java.util.List;
 
 public interface HisClient {
-    PatientDTO queryPatient(String idCard, String medicareCard, String phone);
+    PatientDTO queryPatient(String idCard, String medicareCard, String phone, String medicalNo);
     PatientDTO createPatient(String name, String idCard, String phone, String medicareCard);
     List<DepartmentDTO> listDepartments();
     List<DoctorDTO> listDoctorsByDepartment(Long departmentId);

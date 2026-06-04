@@ -23,6 +23,7 @@ const routes = [
       { path: 'kiosk', name: 'Kiosk', component: () => import('../views/kiosk/KioskList.vue'), meta: { title: '设备管理' } },
       { path: 'rule', name: 'Rule', component: () => import('../views/rule/RuleConfig.vue'), meta: { title: '规则配置' } },
       { path: 'blacklist', name: 'Blacklist', component: () => import('../views/blacklist/BlacklistManage.vue'), meta: { title: '黑名单' } },
+      { path: 'queue', name: 'Queue', component: () => import('../views/queue/QueuePanel.vue'), meta: { title: '叫号管理' } },
       { path: 'anomaly', name: 'Anomaly', component: () => import('../views/anomaly/AnomalyList.vue'), meta: { title: '异常监控' } },
     ]
   }

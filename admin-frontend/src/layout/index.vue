@@ -31,6 +31,10 @@
           <el-icon><Wallet /></el-icon>
           <span>日终结算</span>
         </el-menu-item>
+        <el-menu-item index="/queue">
+          <el-icon><Bell /></el-icon>
+          <span>叫号管理</span>
+        </el-menu-item>
         <el-menu-item index="/kiosk">
           <el-icon><Monitor /></el-icon>
           <span>设备管理</span>

@@ -31,6 +31,11 @@
             <span>手机号</span>
             <small>输入预留手机号</small>
           </button>
+          <button class="method-btn" style="--btn-color: #7c3aed" @click="showMedicalNoInput = true">
+            <el-icon :size="32"><CreditCard /></el-icon>
+            <span>就诊卡号</span>
+            <small>输入就诊卡号</small>
+          </button>
         </div>
       </div>
 
@@ -41,6 +46,16 @@
         <template #footer>
           <el-button @click="showPhoneInput = false">取消</el-button>
           <el-button type="primary" @click="doVerify('phone')" size="large">确认</el-button>
+        </template>
+      </el-dialog>
+
+      <el-dialog v-model="showMedicalNoInput" title="验证就诊卡号" width="420px" top="25vh" :close-on-click-modal="false">
+        <div class="phone-dialog">
+          <el-input v-model="medicalNo" placeholder="请输入就诊卡号" size="large" :prefix-icon="'CreditCard'" />
+        </div>
+        <template #footer>
+          <el-button @click="showMedicalNoInput = false">取消</el-button>
+          <el-button type="primary" @click="doVerify('medicalNo')" size="large">确认</el-button>
         </template>
       </el-dialog>
     </main>
@@ -58,9 +73,11 @@ const route = useRoute()
 const { verify } = useIdentity()
 const showPhoneInput = ref(false)
 const phone = ref('')
+const showMedicalNoInput = ref(false)
+const medicalNo = ref('')
 
 async function doVerify(type: string) {
-  const value = type === 'phone' ? phone.value : 'MOCK_' + type.toUpperCase()
+  const value = type === 'phone' ? phone.value : type === 'medicalNo' ? medicalNo.value : 'MOCK_' + type.toUpperCase()
   const success = await verify(type, value)
   if (success) {
     ElMessage.success('验证成功')

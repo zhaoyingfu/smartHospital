@@ -3,6 +3,7 @@ package com.smarthospital.web.controller.kiosk;
 import com.smarthospital.common.response.R;
 import com.smarthospital.model.dto.SignInReq;
 import com.smarthospital.model.entity.Queue;
+import com.smarthospital.model.vo.queue.QueuePanelVO;
 import com.smarthospital.service.registration.QueueService;
 import com.smarthospital.service.registration.SignInService;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,14 @@ public class KioskQueueController {
         return R.ok(signInService.signIn(req.getPatientId(), req.getRegNo()));
     }
 
-    @GetMapping("/current")
-    public R<Queue> currentServing(@RequestParam Long departmentId, @RequestParam Long doctorId) {
-        return R.ok(queueService.getCurrentServing(departmentId, doctorId));
+    @PostMapping("/reenter")
+    public R<Queue> reenter(@RequestBody SignInReq req) {
+        return R.ok(signInService.reenterSkip(req.getPatientId(), req.getRegNo()));
+    }
+
+    @GetMapping("/status")
+    public R<QueuePanelVO> status(@RequestParam Long departmentId, @RequestParam Long doctorId) {
+        return R.ok(queueService.getPanelData(departmentId, doctorId));
     }
 
     @GetMapping("/wait-count")

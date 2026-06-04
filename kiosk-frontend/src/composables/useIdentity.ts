@@ -13,6 +13,7 @@ export function useIdentity() {
       if (type === 'idCard') payload.idCard = value
       else if (type === 'medicareCard') payload.medicareCard = value
       else if (type === 'phone') payload.phone = value
+      else if (type === 'medicalNo') payload.medicalNo = value
 
       const res: any = await request.post('/kiosk/patient/verify', payload)
       if (res.data) {

@@ -17,7 +17,7 @@ public class KioskPatientController {
 
     @PostMapping("/verify")
     public R<Patient> verify(@RequestBody IdentityVerifyReq req) {
-        Patient patient = patientService.verifyOrRegister(req.getIdCard(), req.getMedicareCard(), req.getPhone());
+        Patient patient = patientService.verifyOrRegister(req.getIdCard(), req.getMedicareCard(), req.getPhone(), req.getMedicalNo());
         return R.ok(patient);
     }
 

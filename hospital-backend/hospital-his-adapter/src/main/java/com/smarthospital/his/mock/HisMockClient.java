@@ -16,8 +16,8 @@ public class HisMockClient implements HisClient {
     private final AtomicLong idSeq = new AtomicLong(1000);
 
     @Override
-    public PatientDTO queryPatient(String idCard, String medicareCard, String phone) {
-        if (idCard == null && medicareCard == null && phone == null) {
+    public PatientDTO queryPatient(String idCard, String medicareCard, String phone, String medicalNo) {
+        if (idCard == null && medicareCard == null && phone == null && medicalNo == null) {
             return null;
         }
         PatientDTO dto = new PatientDTO();
@@ -26,7 +26,7 @@ public class HisMockClient implements HisClient {
         dto.setIdCard(idCard);
         dto.setPhone(phone);
         dto.setMedicareCard(medicareCard);
-        dto.setMedicalNo("MZ" + System.currentTimeMillis());
+        dto.setMedicalNo(medicalNo != null ? medicalNo : "MZ" + System.currentTimeMillis());
         dto.setExists(true);
         return dto;
     }

@@ -37,7 +37,12 @@ public class PatientService {
                 new LambdaQueryWrapper<Patient>().eq(Patient::getPhone, phone));
     }
 
-    public Patient verifyOrRegister(String idCard, String medicareCard, String phone) {
+    public Patient findByMedicalNo(String medicalNo) {
+        return patientMapper.selectOne(
+                new LambdaQueryWrapper<Patient>().eq(Patient::getMedicalNo, medicalNo));
+    }
+
+    public Patient verifyOrRegister(String idCard, String medicareCard, String phone, String medicalNo) {
         Patient patient = null;
         if (idCard != null) {
             patient = findByIdCard(idCard);
@@ -45,22 +50,24 @@ public class PatientService {
             patient = findByMedicareCard(medicareCard);
         } else if (phone != null) {
             patient = findByPhone(phone);
+        } else if (medicalNo != null) {
+            patient = findByMedicalNo(medicalNo);
         }
         if (patient == null) {
-            var hisPatient = hisClient.queryPatient(idCard, medicareCard, phone);
+            var hisPatient = hisClient.queryPatient(idCard, medicareCard, phone, medicalNo);
             patient = new Patient();
             if (hisPatient != null && hisPatient.getExists()) {
                 patient.setName(hisPatient.getName());
-                patient.setIdCard(hisPatient.getIdCard());
+                patient.setIdCard(hisPatient.getIdCard() != null ? hisPatient.getIdCard() : medicalNo);
                 patient.setMedicareCard(hisPatient.getMedicareCard());
                 patient.setPhone(hisPatient.getPhone());
                 patient.setMedicalNo(hisPatient.getMedicalNo());
             } else {
                 patient.setName(hisPatient != null ? hisPatient.getName() : "新患者");
-                patient.setIdCard(idCard);
+                patient.setIdCard(idCard != null ? idCard : medicalNo);
                 patient.setMedicareCard(medicareCard);
                 patient.setPhone(phone);
-                patient.setMedicalNo(hisPatient != null ? hisPatient.getMedicalNo() : "MZ" + System.currentTimeMillis());
+                patient.setMedicalNo(medicalNo != null ? medicalNo : "MZ" + System.currentTimeMillis());
             }
             patient.setIsBlacklist(false);
             patientMapper.insert(patient);
